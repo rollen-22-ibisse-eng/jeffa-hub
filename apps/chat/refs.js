@@ -19,17 +19,50 @@ async function compressThumb(file) {
 
 const pick = (multiple = true) => new Promise(res => { const i = document.createElement('input'); i.type = 'file'; i.accept = 'image/*'; i.multiple = multiple; i.onchange = () => res([...i.files]); i.click(); });
 
+
+const CONSENT_HINT = 'Die abgebildete Person ist erwachsen (mindestens 18 Jahre) und entweder ich selbst oder sie hat in die Nutzung als Referenzbild eingewilligt.';
+
+/** Modal with required checkbox. Resolves true only if the guest confirms. */
+export function confirmAdultConsent() {
+  return new Promise((resolve) => {
+    const wrap = document.createElement('div');
+    wrap.setAttribute('role', 'dialog');
+    wrap.setAttribute('aria-modal', 'true');
+    wrap.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px;';
+    wrap.innerHTML = `<div style="background:var(--bg-card, #1e1e24);color:var(--text-primary, #fff);max-width:420px;width:100%;border-radius:12px;padding:18px 18px 14px;box-shadow:0 8px 32px rgba(0,0,0,.4)">
+      <p style="margin:0 0 8px;font-weight:600">Bestätigung vor dem Hochladen</p>
+      <p class="hint" style="margin:0 0 12px">${CONSENT_HINT}</p>
+      <label style="display:flex;gap:8px;align-items:flex-start;margin:0 0 14px;cursor:pointer">
+        <input type="checkbox" id="ref-consent-cb" style="margin-top:3px">
+        <span>Ich bestätige das.</span>
+      </label>
+      <div class="row-btns" style="display:flex;gap:8px;justify-content:flex-end">
+        <button class="btn btn-secondary" type="button" data-c="cancel">Abbrechen</button>
+        <button class="btn btn-primary" type="button" data-c="ok" disabled>Hochladen</button>
+      </div>
+    </div>`;
+    const done = (v) => { wrap.remove(); resolve(v); };
+    const ok = wrap.querySelector('[data-c=ok]');
+    wrap.querySelector('#ref-consent-cb').onchange = (e) => { ok.disabled = !e.target.checked; };
+    ok.onclick = () => done(!!wrap.querySelector('#ref-consent-cb').checked);
+    wrap.querySelector('[data-c=cancel]').onclick = () => done(false);
+    wrap.addEventListener('click', (e) => { if (e.target === wrap) done(false); });
+    document.body.appendChild(wrap);
+    wrap.querySelector('#ref-consent-cb').focus();
+  });
+}
+
 const TAGS = [['gesicht', '🙂 Ref: Gesicht'], ['koerper', '🧍 Ref: Körper'], ['details', '🔍 Ref: Details'], ['kleidung', '👗 Ref: Kleidung'], ['beispiel', '🎨 Beispielbild'], ['generiert', '🖼 Generiert']];
 const REF = ['gesicht', 'koerper', 'details', 'kleidung'];
 const FILTERS = [['alle', 'Alle'], ['ref', 'Referenz'], ['beispiel', 'Beispielbild'], ['generiert', 'Generiert'], ['fav', '❤ Favorit']];
 let filter = 'alle';
 const match = (i, f) => f === 'alle' || (f === 'ref' ? REF.includes(i.cat) : f === 'fav' ? !!i.fav : i.cat === f);
 
-export async function saveToGallery(profileId, src, cat = 'generiert') {
+export async function saveToGallery(profileId, src, cat = 'generiert', adultConsent = false) {
   const blob = await (await fetch(src)).blob();
   const data = await compress(blob);
   const thumb = await compressThumb(blob);
-  return api('/api/refs', { method: 'POST', body: { profile: profileId, cat, mime: 'image/jpeg', data, thumb } });
+  return api('/api/refs', { method: 'POST', body: { profile: profileId, cat, mime: 'image/jpeg', data, thumb, adultConsent: adultConsent === true } });
 }
 
 export async function renderRefs(el, profile, save) {
@@ -45,7 +78,7 @@ export async function renderRefs(el, profile, save) {
 
   const nB = items.filter(i => i.cat === 'beispiel').length;
   const shown = items.filter(i => match(i, filter)).reverse();
-  el.innerHTML = `<div class="hint">Eine Galerie pro Figur. Tags jederzeit änderbar. Das aktive Gesichtsbild (⭐) dient als Referenz bei der Bildgenerierung; bis zu 3 Beispielbilder dienen beim „Look ableiten" als Stilvorlage.</div>
+  el.innerHTML = `<div class="hint">Eine Galerie pro Figur, auch für Gäste. Vor dem Hochladen eines Fotos bestätigst du, dass die abgebildete Person erwachsen ist und du selbst bist oder ihre Einwilligung hast. Tags jederzeit änderbar. Das aktive Gesichtsbild (⭐) dient als Referenz bei der Bildgenerierung; bis zu 3 Beispielbilder dienen beim „Look ableiten" als Stilvorlage.</div>
     <div class="gal-filters">${FILTERS.map(([f, l]) => `<button class="btn-sm ${f === filter ? 'on' : ''}" data-f="${f}">${l} (${items.filter(i => match(i, f)).length})</button>`).join('')}</div>
     <div class="ref-head" style="margin-top:6px"><select id="gal-tag">${TAGS.map(([c, l]) => `<option value="${c}" ${c === (filter === 'beispiel' ? 'beispiel' : filter === 'generiert' ? 'generiert' : 'gesicht') ? 'selected' : ''}>${l}</option>`).join('')}</select><button class="btn-sm" id="gal-add">＋ Hochladen</button></div>
     <div class="ref-mode" style="margin-top:8px"><label>Referenz-Modus</label>
@@ -74,12 +107,13 @@ export async function renderRefs(el, profile, save) {
   
   el.querySelector('#gal-add').onclick = async (ev) => {
     const b = ev.target, cat = el.querySelector('#gal-tag').value;
+    if (!(await confirmAdultConsent())) return;
     const files = await pick(); if (!files.length) return; b.disabled = true; b.textContent = '⏳';
     try {
       for (const f of files) {
         const data = await compress(f);
         const thumb = await compressThumb(f);
-        await api('/api/refs', { method: 'POST', body: { profile: profile.id, cat, mime: 'image/jpeg', data, thumb } });
+        await api('/api/refs', { method: 'POST', body: { profile: profile.id, cat, mime: 'image/jpeg', data, thumb, adultConsent: true } });
       }
     } catch (e) { alert('Upload fehlgeschlagen: ' + e.message); }
     reload();
@@ -96,7 +130,7 @@ export async function renderRefs(el, profile, save) {
       if (a === 'del') { if (!confirm('Bild löschen?')) return; await api('/api/refs/' + id, { method: 'DELETE' }); }
       if (a === 'star') await api(`/api/refs/${id}/star`, { method: 'POST', body: {} });
       if (a === 'fav') await api('/api/refs/' + id, { method: 'PATCH', body: { fav: !it.fav } });
-      if (a === 'replace') { const [f] = await pick(false); if (!f) return; const data = await compress(f); const thumb = await compressThumb(f); await api('/api/refs/' + id, { method: 'PUT', body: { mime: 'image/jpeg', data, thumb } }); }
+      if (a === 'replace') { if (!(await confirmAdultConsent())) return; const [f] = await pick(false); if (!f) return; const data = await compress(f); const thumb = await compressThumb(f); await api('/api/refs/' + id, { method: 'PUT', body: { mime: 'image/jpeg', data, thumb, adultConsent: true } }); }
     } catch (e) { alert('Fehler: ' + e.message); }
     reload();
   });

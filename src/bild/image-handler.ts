@@ -41,10 +41,13 @@ export async function handleImage(ctx: EventContext<Env, any, any>): Promise<Res
     const { minorRisk, youthRisk } = await import("../imgsvc");
     let minor = youthRisk(String(prompt));
     const pid = String((body as any).ref_profile || "");
-    if (!minor && pid && body.adult === true) { try { const { loadSyncedProfile } = await import("../imgsvc-db"); const sp = await loadSyncedProfile(context.env, pid); if (sp) minor = minorRisk(sp.profile || {}, sp.resolved || {}); } catch (e) { console.error("profile load failed", e); } }
+    if (!minor && pid && (body.adult === true || !!(body as any).ref_profile || !!(body as any).ref_mode)) { try { const { loadSyncedProfile } = await import("../imgsvc-db"); const sp = await loadSyncedProfile(context.env, pid); if (sp) minor = minorRisk(sp.profile || {}, sp.resolved || {}); } catch (e) { console.error("profile load failed", e); } }
     if (minor) return new Response(JSON.stringify({ error: "not_adult", message: "Profil muss eindeutig erwachsen sein (18+)" }), { status: 403, headers: { "content-type": "application/json" } });
   }
-  const safeMode = body.adult === true ? false : body.safe_mode !== false;
+  // Jugendfrei/SFW: Safe-Mode bleibt an. Sonst: aus für altersgeprüfte Nutzer (body.adult).
+  const chatModeNorm = String((body as any).mode || "").trim().toLowerCase();
+  const sfwChosen = /^(jugendfrei|sfw|safe|sfw-?only)$/.test(chatModeNorm);
+  const safeMode = sfwChosen ? true : (body.adult === true ? false : body.safe_mode !== false);
   const comicStyle = ["comic", "comicpage", "manhwa"].includes(String(body.style));
   // FSK18 photo mode, ported from Nachtfalter: Venice chroma (uncensored, $0.01, default steps) at 768x1024 (Nachtfalter "mittel"; Venice max 1280).
   const lustify = !safeMode && !comicStyle && !body.model;
@@ -111,7 +114,7 @@ export async function handleImage(ctx: EventContext<Env, any, any>): Promise<Res
       // Face reference (admin/unlocked only): the active "Gesicht" image of the profile is used as identity source.
       if (body.ref_profile && /^[A-Za-z0-9_-]{1,64}$/.test(body.ref_profile) && context.env.DB && body.style !== "comicpage") {
         let ref: any = null;
-        try { await requireRole(ctx as any, "admin"); const d = await loadStarRef(context.env, body.ref_profile); ref = d ? { data: d } : null; } catch { ref = null; }
+        try { await requireRole(ctx as any, "read"); const d = await loadStarRef(context.env, body.ref_profile); ref = d ? { data: d } : null; } catch { ref = null; }
         if (ref?.data && !editRef) {
           // v36: no edit route – reference only gives face/hair/body as text; scene prompt leads, normal text model renders
           const look = await refLook(context.env, ref.data, full);

@@ -793,10 +793,11 @@ async function onChip(action, id, chip) {
   else if (action === 'gal') {
     const m = currentConv()?.messages.find(x => x.id === id); const prof = getProfile(currentConv()?.profileId) || getActiveProfile();
     if (!m?.imageUrl || !prof) return;
-    const { ensureAdmin } = await import('./shared/auth.js'); if (!(await ensureAdmin())) return;
     const tag = prompt('Speichern in der Galerie von ' + prof.name + ' als:\n1 = Generiert\n2 = Favorit\n3 = Beispielbild\n4 = Referenz: Gesicht\n5 = Referenz: Körper', '1'); if (!tag) return;
     const cat = { 1: 'generiert', 2: 'generiert', 3: 'beispiel', 4: 'gesicht', 5: 'koerper' }[tag.trim()] || 'generiert';
-    try { const { saveToGallery } = await import('./refs.js'); const r = await saveToGallery(prof.id, m.imageUrl, cat);
+    try { const { saveToGallery, confirmAdultConsent } = await import('./refs.js');
+      if (!(await confirmAdultConsent())) return;
+      const r = await saveToGallery(prof.id, m.imageUrl, cat, true);
       if (tag.trim() === '2' && r?.id) await api('/api/refs/' + r.id, { method: 'PATCH', body: { fav: true } });
       toast('In Galerie gespeichert'); } catch (e) { toast('Speichern fehlgeschlagen: ' + e.message); }
   }

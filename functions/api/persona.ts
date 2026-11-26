@@ -31,7 +31,7 @@ export const onRequestPost: PagesFunction<Env> = async (context) => {
 
   const genderRaw = String((profile && (profile.gender || profile.persona?.gender)) || "").trim().toLowerCase();
   const genderWord = genderRaw === "m" || genderRaw === "male" || genderRaw === "mann" ? "männlich" : genderRaw === "d" || genderRaw === "divers" ? "divers" : genderRaw === "w" || genderRaw === "female" || genderRaw === "frau" ? "weiblich" : "";
-  const system = "Erstelle basierend auf den folgenden Einstellungen einen kompakten deutschen System-Prompt (maximal 180 Wörter) für einen Charakter-Chat. Keine expliziten sexuellen Inhalte. Alle Charaktere sind erwachsen (18+)." + (genderWord ? ` Die Figur ist ${genderWord}; nutze durchgehend die passende grammatische Form.` : "");
+  const system = "Erstelle basierend auf den folgenden Einstellungen einen kompakten deutschen System-Prompt (maximal 180 Wörter) für einen Charakter-Chat. Alle Charaktere sind erwachsen (18+). Niemals Minderjährige oder kindliche Darstellungen." + (adult ? " Explizite Inhalte mit erwachsenen Figuren sind erlaubt." : " Antworte jugendfrei: keine sexuellen oder expliziten Inhalte.") + (genderWord ? ` Die Figur ist ${genderWord}; nutze durchgehend die passende grammatische Form.` : "");
   const content = JSON.stringify(profile, null, 2);
 
   const result = await complete(context.env, {

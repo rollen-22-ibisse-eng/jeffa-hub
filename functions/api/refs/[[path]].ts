@@ -1,4 +1,5 @@
-// Per-profile reference images (admin only). Categories: gesicht, koerper, details, kleidung, beispiel, generiert.
+// Per-profile reference images (logged-in users). Categories: gesicht, koerper, details, kleidung, beispiel, generiert.
+// Uploads (POST/PUT) require adultConsent: the depicted person is an adult and is the guest or has consented.
 // NEW: R2 storage via env.IMAGES, thumbs (≤40KB base64 JPEG), star, settings (off|face|full), migrate.
 import { Env } from "../../../src/env";
 import { requireRole, AuthError } from "../../../src/auth";
@@ -24,7 +25,8 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
   const path = url.pathname.replace(/^\/api\/refs\/?/, "").split("/").filter(Boolean);
 
   try {
-    await requireRole(ctx, "admin");
+    const session = await requireRole(ctx, "read");
+    const isAdmin = session.role === "admin";
 
     // GET /api/refs/settings?profile=X
     if (path[0] === "settings" && M === "GET") {
@@ -44,8 +46,9 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       return j(200, { ok: true });
     }
 
-    // POST /api/refs/migrate
+    // POST /api/refs/migrate (admin only)
     if (path[0] === "migrate" && M === "POST") {
+      if (!isAdmin) return j(403, { error: "forbidden" });
       if (!env.IMAGES) return j(400, { error: "r2_not_bound" });
       const rows = await db.prepare("SELECT id, profile, data FROM profile_refs WHERE r2_key IS NULL AND data != ''").all();
       let moved = 0;
@@ -74,6 +77,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       const b: any = await request.json().catch(() => null);
       if (!b || !PID.test(b.profile || "") || !CATS.includes(b.cat) || !okImg(b)) return j(400, { error: "bad_input" });
       if (b.thumb && !okThumb(b.thumb)) return j(400, { error: "bad_thumb" });
+      if (b.adultConsent !== true) return j(400, { error: "consent_required", message: "Bitte bestätigen: Die abgebildete Person ist erwachsen und entweder du selbst oder sie hat eingewilligt." });
 
       const limit = await db.prepare("SELECT COUNT(*) n FROM profile_refs WHERE profile=? AND cat IN ('gesicht','koerper')").bind(b.profile).first<number>("n");
       if ((limit || 0) >= 3) return j(400, { error: "too_many_refs" });
@@ -143,6 +147,7 @@ export const onRequest: PagesFunction<Env> = async (ctx) => {
       const b: any = await request.json().catch(() => null);
       if (!okImg(b)) return j(400, { error: "bad_input" });
       if (b.thumb && !okThumb(b.thumb)) return j(400, { error: "bad_thumb" });
+      if (b.adultConsent !== true) return j(400, { error: "consent_required", message: "Bitte bestätigen: Die abgebildete Person ist erwachsen und entweder du selbst oder sie hat eingewilligt." });
 
       const r2Row = await db.prepare("SELECT r2_key FROM profile_refs WHERE id=?").bind(id).first<{ r2_key: string | null }>();
       if (r2Row?.r2_key && env.IMAGES) {

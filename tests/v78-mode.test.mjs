@@ -25,9 +25,19 @@ test('effectiveAdult', () => {
   assert.equal(effectiveAdult({ mode: 'hemmungslos' }, {}, adultOn), true);
   assert.equal(effectiveAdult({ mode: 'hemmungslos' }, {}, adultOff), false);
   assert.equal(effectiveAdult({ mode: 'jugendfrei' }, {}, adultOn), false);
-  assert.equal(effectiveAdult({}, { adult: false }, adultOn), false);
+  // altersgeprüft, kein expliziter jugendfrei-Modus → Erwachsenenpfad
+  assert.equal(effectiveAdult({}, { adult: false }, adultOn), true);
   assert.equal(effectiveAdult({ mode: 'hemmungslos' }, { adultMode: false }, adultOn), false);
   assert.equal(effectiveAdult({ mode: 'hemmungslos' }, { adult: 'never' }, adultOn), false);
+});
+
+test('chatMode: altersgeprüfte Nutzer standardmäßig hemmungslos, gewähltes Jugendfrei bleibt', () => {
+  assert.equal(chatMode({}, { adult: false }, adultOn), MODES.hemmungslos);
+  assert.equal(chatMode({}, {}, adultOn), MODES.hemmungslos);
+  assert.equal(chatMode({ mode: 'jugendfrei' }, { adult: true }, adultOn), MODES.jugendfrei);
+  assert.equal(chatMode({}, { adult: 'never' }, adultOn), MODES.jugendfrei);
+  assert.equal(chatMode({}, { adultMode: false }, adultOn), MODES.jugendfrei);
+  assert.equal(chatMode({}, {}, adultOff), MODES.jugendfrei);
 });
 
 test('SFW_DIRECTIONS has 3 non-empty EN prompts', () => {
@@ -54,7 +64,9 @@ test('enforceImageMode', () => {
   assert.equal(enforceImageMode({ adult: true, mode: 'hemmungslos' }).adult, true);
   assert.equal(enforceImageMode({ adult: true }).adult, true);
   assert.equal(enforceImageMode({ adult: true, mode: undefined }).adult, true);
-  assert.equal(enforceImageMode({ adult: true, mode: 'quatsch' }).adult, false);
+  assert.equal(enforceImageMode({ adult: true, mode: 'quatsch' }).adult, true);
+  assert.equal(enforceImageMode({ adult: true, mode: 'sfw' }).adult, false);
+  assert.equal(enforceImageMode({ adult: true, mode: 'safe' }).adult, false);
 });
 
 test('jugendfrei: Richtung landet im Outfit, nicht im 18+-Modus', () => {
