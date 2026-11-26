@@ -1,5 +1,6 @@
 // Server-side prompt from the synced profile (spec r5) – single path for chat, Bild-App and 'jeffa:image'.
 import { storeGenerated } from "./r2img.js";
+import { sizeParamsFor } from "./venice-size.js";
 import { trackUsage } from "./usage";
 import { Env } from "./env";
 import { requireRole, AuthError } from "./auth";
@@ -174,7 +175,7 @@ export async function imageNewMode(ctx: EventContext<Env, any, any>, env: Env, b
     const chroma = model === "chroma";
     const res = await fetch("https://api.venice.ai/api/v1/image/generate", {
       method: "POST", headers: { authorization: `Bearer ${key}`, "content-type": "application/json" },
-      body: JSON.stringify({ model, prompt: p.slice(0, chroma ? 3000 : 1500), negative_prompt: neg.slice(0, 800), seed, hide_watermark: true, width: chroma ? 768 : 1024, height: 1024, format: "webp", safe_mode: !body.adult, ...(model.startsWith("lustify") ? { steps: steps || 30, cfg_scale: 5 } : {}) }),
+      body: JSON.stringify({ model, prompt: p.slice(0, chroma ? 3000 : 1500), negative_prompt: neg.slice(0, 800), seed, hide_watermark: true, ...sizeParamsFor(model, chroma ? 768 : 1024, 1024), format: "webp", safe_mode: !body.adult, ...(model.startsWith("lustify") ? { steps: steps || 30, cfg_scale: 5 } : {}) }),
     });
     if (!res.ok) { const t = (await res.text()).slice(0, 200); console.error("venice gen", res.status, t); throw new Error(`gen ${res.status}: ${t}`); }
     const d: any = await res.json(); const im = d.images?.[0];
@@ -262,12 +263,15 @@ export async function imageNewMode(ctx: EventContext<Env, any, any>, env: Env, b
       // v85a: Venice leer → EIN Ersatzversuch über Runware (nur wenn Key im Tresor/Env)
       try {
         const img = await genRunware(finalPrompt, P.seed, negative);
-        return await out(img, `${RUNWARE_MODEL} (Ersatz – Venice leer)`, 0.002, { fallback: "runware" });
-      } catch (e2: any) { console.error("runware fallback failed", String(e2?.message || e2).slice(0, 160)); }
+        return await out(img, `${RUNWARE_MODEL} (Ersatz – Venice leer)`, 0.002, { fallback: "runware", warning: `Venice fehlgeschlagen: kein Guthaben (${t.slice(0, 80)}) – Ersatz Runware benutzt` });
+      } catch (e2: any) {
+        const t2 = String(e2?.message || e2).slice(0, 160); console.error("runware fallback failed", t2);
+        return j(502, { error: { code: "all_providers_failed", message: `Alle Anbieter fehlgeschlagen – Venice: kein Guthaben (${t.slice(0, 80)}); Ersatz Runware: ${t2}` } });
+      }
     }
     if (/runware no key/.test(t)) return j(503, { error: { code: "runware_no_key", message: "Runware-Key fehlt – bitte im Tresor hinterlegen oder andere Qualität wählen" } });
     if (/402|insufficient|balance/i.test(t)) return j(402, { error: { code: "venice_no_credit", message: "Venice-Guthaben leer – bitte auf venice.ai aufladen" } });
     console.error("new-mode image failed", e);
-    return j(502, { error: "generation_failed" });
+    return j(502, { error: { code: "generation_failed", message: `Bild fehlgeschlagen (Venice): ${t.slice(0, 160) || "unbekannter Fehler"}` } });
   }
 }
