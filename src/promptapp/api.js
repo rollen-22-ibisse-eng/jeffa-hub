@@ -17,6 +17,7 @@ export {
   emojiStyle,
   normalizeMode,
   CHAT_AGE_RULE,
+  EXPLICIT_OK_RULE,
   pickChatModels,
   isUncensoredModel,
   isRefusal,

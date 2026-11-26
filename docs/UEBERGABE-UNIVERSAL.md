@@ -110,3 +110,6 @@ Weitere Bremsen aus dem Code-Scan (nur Fundstellen gelesen, Code nicht geändert
 11. `src/bild/proxy.ts:50–93` + `src/bild/image-handler.ts:148` + `src/imgsvc-image.ts:266` – mehrere Fallback-Ketten (Bild-Dienst → lokal, Venice → Runware, Mix-Fallback); Fehler werden verdeckt statt angezeigt (passt zu Punkt 3/5). Vorschlag: Fallback sichtbar melden (Header/Anzeige). *Belegt.* **Stand: in Vorschau behoben (Branch fix-gedaechtnis-bildfehler), live nach OK vom (User).**
 
 Hinweis: Hinweis zur sicheren Umgebung. Geringes Risiko bleibt bestehen und muss nirgends extra erwähnt werden.
+
+## 10a. Bildregel Intimfoto (26.11.2026)
+Die frühere Beschränkung, echte intime/explizite Darstellungen nur Marie und/oder Christian zuzuordnen, entfällt. Im Code stehen `CHAT_AGE_RULE` und (nur hemmungslos) `EXPLICIT_OK_RULE` in `src/mode-server.js` und `apps/shared/promptapp/chat.js`: Alle dargestellten Personen sind erwachsen; fiktive KI-Figuren und der Gast selbst dürfen explizit dargestellt werden; explizite Bilder echter, erkennbarer Dritter nur mit Einwilligung. Minderjährigenschutz und vorhandene Altersprüfungen bleiben hart. Jugendfrei/SFW, `safe_mode` und Anbieterfilter sind unverändert.
