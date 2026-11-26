@@ -5,17 +5,20 @@ export const MODES = { jugendfrei: 'jugendfrei', hemmungslos: 'hemmungslos' };
 
 const isMode = (v) => v === MODES.jugendfrei || v === MODES.hemmungslos;
 
-export function chatMode(conv, profile) {
+export function chatMode(conv, profile, isAdultFn = globalIsAdult) {
   const v = conv?.mode;
   if (isMode(v)) return v;
-  // Default jugendfrei; 18+-only profiles keep the old implicit behaviour.
-  if (profile?.adult === true || profile?.adultMode === true) return profile?.adult === true ? MODES.hemmungslos : MODES.jugendfrei;
+  // Harte Ausnahmen: Profil sperrt Erwachseneninhalte.
+  if (profile?.adult === 'never' || profile?.adultMode === false) return MODES.jugendfrei;
+  // 18+-Profile und altersgeprüfte Nutzer: Standard hemmungslos, außer der Gast wählt jugendfrei.
+  if (profile?.adult === true) return MODES.hemmungslos;
+  try { if (isAdultFn()) return MODES.hemmungslos; } catch {}
   return MODES.jugendfrei;
 }
 
 export function effectiveAdult(conv, profile, isAdultFn = globalIsAdult) {
   if (!isAdultFn()) return false;
-  if (chatMode(conv, profile) !== MODES.hemmungslos) return false;
+  if (chatMode(conv, profile, isAdultFn) !== MODES.hemmungslos) return false;
   if (profile?.adultMode === false) return false;
   if (profile?.adult === 'never') return false;
   return true;

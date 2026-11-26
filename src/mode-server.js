@@ -32,10 +32,11 @@ export function applyModeToSystem(system, mode) {
   return out;
 }
 
-// Only downgrades when an explicit mode is sent; a missing mode keeps legacy behaviour.
+// Jugendfrei/SFW bleibt voll wirksam (adult wird abgeschaltet).
+// Fehlt der Modus oder ist er hemmungslos: body.adult bleibt (safe_mode kann für altersgeprüfte Nutzer aus sein).
 export function enforceImageMode(body) {
   if (!body || typeof body !== 'object') return body;
   if (body.mode === undefined || body.mode === null) return body;
-  if (body.mode !== 'hemmungslos') return { ...body, adult: false };
+  if (normalizeChatMode(body.mode) === 'jugendfrei') return { ...body, adult: false };
   return body;
 }

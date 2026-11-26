@@ -6,7 +6,7 @@ import { Env } from "./env";
 import { requireRole, AuthError } from "./auth";
 import { complete } from "./providers";
 import {
-  buildImagePlan, buildEditPrompt, shortModel, COMPOSER_JSON_SYSTEM, modelLabel, scrubYouth, normRefMode,
+  buildImagePlan, buildEditPrompt, shortModel, COMPOSER_JSON_SYSTEM, modelLabel, scrubYouth, normRefMode, minorRisk, youthRisk,
 } from "./imgsvc";
 import { refLook } from "./reflook";
 import { classifyVerdict } from "./imgsvc-checkparse.js";
@@ -138,11 +138,15 @@ export async function imageNewMode(ctx: EventContext<Env, any, any>, env: Env, b
 
   let finalPrompt = prompt, lookUsed = "";
   try {
-    const sm = isAdmin ? await loadRefMode(env, pid, null) : null;
+    const sm = canRead ? await loadRefMode(env, pid, null) : null;
     const refMode = normRefMode(sm || (profile.refFace ? (profile.refMode === "full" || profile.refMode === "figur" ? "figur" : "face") : "off"));
-    if (isAdmin && (refMode === "face" || refMode === "figur")) {
+    if (canRead && (refMode === "face" || refMode === "figur")) {
       const ref = await loadStarRef(env, pid);
       if (ref) { const lk = await refLook(env, ref, refMode === "figur"); if (lk) { lookUsed = lk; finalPrompt = `${finalPrompt}. Same woman every time, her appearance: ${lk}`; } }
+    }
+    // Altersprüfung gilt auch für Gast-Referenzbilder.
+    if (lookUsed && (minorRisk(profile, resolved) || youthRisk(lookUsed) || youthRisk(finalPrompt))) {
+      return j(403, { error: "not_adult", message: "Profil muss eindeutig erwachsen sein (18+)" });
     }
   } catch (e) { console.error("ref look failed", e); }
 

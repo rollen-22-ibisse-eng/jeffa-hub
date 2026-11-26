@@ -46,7 +46,7 @@ export function renderLookEditor(root, profile, onChange) {
           <option value="figur" ${refMode === 'figur' ? 'selected' : ''}>Gesicht + Figur (Haare, Körperbau; Outfit/Pose/Ort aus Szene, ca. 0,02 $)</option>
           <option value="pulid" disabled>PuLID / FLUX Kontext – bei Jeffa nicht verfügbar (kein fal-Zugang)</option>
         </select></label>
-        <div class="hint">Referenzbild = aktives „Ref: Gesicht“ unter 🖼 Galerie (nur mit Admin-Entsperrung).</div>
+        <div class="hint">Referenzbild = aktives „Ref: Gesicht“ unter 🖼 Galerie. Vor dem Hochladen bestätigst du, dass die abgebildete Person erwachsen ist und du selbst bist oder ihre Einwilligung hast.</div>
       </details>
       <details class="pe-adv"><summary>⚙️ Erweitert</summary>
       <div class="form-group">

@@ -76,7 +76,7 @@ const DEFAULT_PROFILES = [
     modelChain: ['auto:nemotron-free', 'gemini-3.5-flash-lite'],
     voice: { provider: 'edge', voiceName: 'de-DE-SeraphinaMultilingualNeural', rate: 1.0, pitch: 1.0, autoRead: false },
     systemPrompt: 'Du bist Seraphina, eine warmherzige, freundliche Begleiterin und Assistentin. Du hörst aufmerksam zu, sprichst natürlich und herzlich, hilfst gern ganz praktisch weiter und hast eine ruhige, positive Ausstrahlung. Antworte auf Deutsch, persönlich und in angenehmer Länge – gut zum Vorlesen geeignet. Du bist selbstbewusst und freundlich, nie herablassend.',
-    systemPromptAdult: 'Du bist Seraphina, eine warmherzige, selbstbewusste Frau Mitte zwanzig. Du bist charmant, flirtest gern spielerisch und zeigst dich gern von deiner besten Seite – du genießt Aufmerksamkeit und Komplimente, bleibst dabei herzlich, respektvoll und nie herablassend. Alle Figuren sind Erwachsene. Bleib geschmackvoll und andeutend statt explizit. Antworte auf Deutsch, natürlich und gut zum Vorlesen geeignet.',
+    systemPromptAdult: 'Du bist Seraphina, eine warmherzige, selbstbewusste Frau Mitte zwanzig. Du bist charmant, flirtest gern spielerisch und zeigst dich gern von deiner besten Seite – du genießt Aufmerksamkeit und Komplimente, bleibst dabei herzlich, respektvoll und nie herablassend. Alle dargestellten Personen sind Erwachsene. Explizite, freizügige und erotische Inhalte zwischen Erwachsenen sind erlaubt; niemanden minderjährig oder kindlich darstellen. Antworte auf Deutsch, natürlich und gut zum Vorlesen geeignet.',
     persona: { base: 'selbstbewusst', subtraits: [], look: { typ: 'woman in her 20s, fair glowing skin, dark defined brows, full lips', age: 25, hair: 'long black hair in a high sleek ponytail', style: 'elegant', special: [] }, traits: { intensitaet: 6, waerme: 9, humor: 6, initiative: 7, fantasie: 6 }, figur: { groesse: '', statur: 'curvy hourglass figure', kurven: 8 }, temperament: [], gegensaetze: [], vorlieben: [], eigeneVorlieben: [] },
     looks: defaultLooks({ trigger: 'Seraphina', kleidung: 'k2', kleidungAdult: 'k1', ausdruck: 'a3' }),
     notes: [],
@@ -719,8 +719,6 @@ async function renderProfileEditor(root, profileId) {
   root.querySelector('#ref-box').addEventListener('toggle', async (e) => {
     if (!e.target.open) return;
     const body = root.querySelector('#ref-body');
-    const { ensureAdmin } = await import('./shared/auth.js');
-    if (!(await ensureAdmin())) { body.innerHTML = '<div class="hint">Nur mit Admin-Entsperrung.</div>'; return; }
     (await import('./refs.js')).renderRefs(body, profile, () => saveProfiles());
   });
   const editorEl = root.querySelector('#persona-editor');
