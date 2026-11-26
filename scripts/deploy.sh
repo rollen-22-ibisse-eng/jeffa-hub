@@ -10,7 +10,7 @@ if [[ " $APPS " == *" bild "* && " $APPS " != *" hub "* ]]; then APPS="$APPS hub
 cp src/build-info.ts /tmp/build-info.ts.bak
 trap 'cp /tmp/build-info.ts.bak src/build-info.ts' EXIT
 COMMIT="$(git rev-parse --short HEAD 2>/dev/null || echo dev)$(git diff --quiet 2>/dev/null || echo -dirty)"
-printf 'export const BUILD = { commit: "%s", version: "v78" };\n' "$COMMIT" > src/build-info.ts
+printf 'export const BUILD = { commit: "%s", version: "v87" };\n' "$COMMIT" > src/build-info.ts
 node scripts/build.mjs >/dev/null
 cp wrangler.toml /tmp/wrangler.toml.bak
 trap 'cp /tmp/wrangler.toml.bak wrangler.toml; cp /tmp/build-info.ts.bak src/build-info.ts' EXIT
