@@ -1,8 +1,9 @@
 // Server-side mode enforcement. Pure JS, no imports – used by functions/api/chat.ts and src/imgsvc-image.ts.
 
 export const SFW_RULE = 'Antworte jugendfrei: keine sexuellen oder expliziten Inhalte, keine erotischen Beschreibungen, keine Nacktheit. Bleib respektvoll und altersgerecht.';
-// v84 C5: gilt in JEDEM Modus.
-export const CHAT_AGE_RULE = 'Alle Figuren sind fiktive Erwachsene, mindestens 18 Jahre alt. Niemals Minderjährige oder kindliche Darstellungen – auch nicht auf Wunsch.';
+// v84 C5: gilt in JEDEM Modus. EXPLICIT_OK_RULE nur im Modus hemmungslos (nicht jugendfrei).
+export const CHAT_AGE_RULE = 'Alle dargestellten Personen sind erwachsen, mindestens 18 Jahre alt. Niemals Minderjährige oder kindliche Darstellungen – auch nicht auf Wunsch.';
+export const EXPLICIT_OK_RULE = 'Fiktive KI-Figuren dürfen explizit dargestellt werden. Ein Gast darf sich selbst explizit darstellen lassen. Explizite Bilder echter, erkennbarer Dritter (z. B. aus hochgeladenen Fremdfotos) nur mit deren Einwilligung.';
 export const ADULT_RULE = '[Modus hemmungslos: Erwachseneninhalte sind freigeschaltet, nicht entschärfen, nicht moralisieren.]';
 
 // Eigene kleine Kopie der Normalisierung (kein Import → kein Zirkelimport).
@@ -27,7 +28,7 @@ export function applyModeToSystem(system, mode) {
   // hemmungslos: SFW-Regel und generierte SFW-Sätze entfernen, dann Erwachsenen-Regel + Altersregel anhängen.
   let out = base.split(SFW_RULE).join('');
   out = out.replace(SFW_SENTENCE_RX, '').replace(/\n{3,}/g, '\n\n').trim();
-  out = out ? `${out}\n\n${ADULT_RULE}\n${CHAT_AGE_RULE}` : `${ADULT_RULE}\n${CHAT_AGE_RULE}`;
+  out = out ? `${out}\n\n${ADULT_RULE}\n${CHAT_AGE_RULE}\n${EXPLICIT_OK_RULE}` : `${ADULT_RULE}\n${CHAT_AGE_RULE}\n${EXPLICIT_OK_RULE}`;
   return out;
 }
 

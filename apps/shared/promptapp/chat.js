@@ -4,7 +4,8 @@
 import { personaChatText } from '../persona-terms.js';
 
 // ---- P7/C5: Altersregel (auch serverseitig in src/mode-server.js)
-export const CHAT_AGE_RULE = 'Alle Figuren sind fiktive Erwachsene, mindestens 18 Jahre alt. Niemals Minderjährige oder kindliche Darstellungen – auch nicht auf Wunsch.';
+export const CHAT_AGE_RULE = 'Alle dargestellten Personen sind erwachsen, mindestens 18 Jahre alt. Niemals Minderjährige oder kindliche Darstellungen – auch nicht auf Wunsch.';
+export const EXPLICIT_OK_RULE = 'Fiktive KI-Figuren dürfen explizit dargestellt werden. Ein Gast darf sich selbst explizit darstellen lassen. Explizite Bilder echter, erkennbarer Dritter (z. B. aus hochgeladenen Fremdfotos) nur mit deren Einwilligung.';
 
 // ---- P1: aus apps/chat/sysprompt.js hierher verschoben (dort jetzt Re-Export)
 function isFigureProfile(profile) {

@@ -12,7 +12,7 @@ const EDGE_VOICES = new Function('return ' + evSrc[1])(); // profiles.js braucht
 const src = (p) => readFileSync(p, 'utf8');
 
 test('v84 P1: ein Einstieg für Chat und Bild', async () => {
-  for (const k of ['buildImagePrompt', 'buildPromptPlan', 'guardAdult', 'buildChatSystem', 'genderOf', 'emojiStyle', 'pickChatModels', 'isRefusal', 'refusalFallback', 'autoImageDecision', 'CHAT_AGE_RULE'])
+  for (const k of ['buildImagePrompt', 'buildPromptPlan', 'guardAdult', 'buildChatSystem', 'genderOf', 'emojiStyle', 'pickChatModels', 'isRefusal', 'refusalFallback', 'autoImageDecision', 'CHAT_AGE_RULE', 'EXPLICIT_OK_RULE'])
     assert.ok(k in API, k);
   assert.equal(API.buildChatSystem, PA.buildChatSystem);
   assert.match(src('apps/chat/sysprompt.js'), /from '\.\/shared\/promptapp\/chat\.js'/);
@@ -38,9 +38,14 @@ test('v84 P1/P4/P5: buildChatSystem – Figur, männlicher Coder, hemmungslos', 
 
 test('v84 Altersgrenze Chat 18+: CHAT_AGE_RULE, hemmungslos ohne SFW-Regel, keine 21 mehr', () => {
   assert.match(PA.CHAT_AGE_RULE, /mindestens 18/);
+  assert.match(PA.CHAT_AGE_RULE, /Alle dargestellten Personen sind erwachsen/);
+  assert.match(PA.EXPLICIT_OK_RULE, /Fiktive KI-Figuren dürfen explizit/);
+  assert.match(PA.EXPLICIT_OK_RULE, /Ein Gast darf sich selbst explizit/);
   const j = applyModeToSystem('Basis.', 'jugendfrei'), h = applyModeToSystem('Basis. ' + SFW_RULE, 'hemmungslos');
   assert.ok(j.includes(SFW_RULE) && j.includes(PA.CHAT_AGE_RULE));
+  assert.ok(!j.includes(PA.EXPLICIT_OK_RULE), 'jugendfrei darf EXPLICIT_OK_RULE nicht tragen');
   assert.ok(!h.includes(SFW_RULE) && h.includes(PA.CHAT_AGE_RULE) && h.startsWith('Basis.'));
+  assert.ok(h.includes(PA.EXPLICIT_OK_RULE));
   assert.equal(applyModeToSystem('X', undefined), 'X');
   for (const v of ['hemmungslos', 'Hemmungslos', 'HEMMUNGSLOS', ' hemmungslos ', 'adult', 'fsk18', '18+']) assert.equal(PA.normalizeMode(v), 'hemmungslos', v);
   for (const v of ['jugendfrei', 'sfw', '']) assert.notEqual(PA.normalizeMode(v), 'hemmungslos', v);
